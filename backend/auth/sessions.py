@@ -6,11 +6,16 @@ password + OTP, tokens protected against unauthorized use, expire
 after inactivity, and can be securely invalidated (logout).
 """
 
+import os
 import secrets
 from datetime import datetime, timedelta, timezone
 from extensions import get_db
 
-SESSION_VALID_HOURS = 2
+# Session lifetime, in minutes. Set to 1 so a session expires after
+# just 1 minute of inactivity (sliding expiration — any authenticated
+# request resets the clock). Change this value if you need a longer
+# lifetime later (e.g. for normal day-to-day development).
+SESSION_VALID_MINUTES = int(os.environ.get("SESSION_VALID_MINUTES", 1))
 
 
 def sessions_collection():
@@ -31,7 +36,7 @@ def create_session(user_id, role: str) -> str:
         "role": role,
         "created_at": now,
         "last_active": now,
-        "expires_at": now + timedelta(hours=SESSION_VALID_HOURS),
+        "expires_at": now + timedelta(minutes=SESSION_VALID_MINUTES),
     })
 
     return token
@@ -59,7 +64,7 @@ def get_session(token: str):
         {"token": token},
         {"$set": {
             "last_active": now,
-            "expires_at": now + timedelta(hours=SESSION_VALID_HOURS),
+            "expires_at": now + timedelta(minutes=SESSION_VALID_MINUTES),
         }},
     )
 

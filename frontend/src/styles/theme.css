@@ -1,0 +1,161 @@
+/* ==========================================================================
+   theme.css — TixCrypt design tokens
+   Import this once at the top of your app (in main.jsx or App.jsx).
+   ========================================================================== */
+
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&display=swap');
+
+:root {
+  /* Color */
+  --bg: #FFFFFF;
+  --bg-subtle: #F7FAF8;
+  --ink: #122118;
+  --ink-soft: #4B5B52;
+  --green-700: #0E6B4F;
+  --green-600: #147A5B;
+  --green-500: #1FA672;
+  --green-100: #DCEFE6;
+  --line: #E4E9E6;
+  --danger: #C0392B;
+
+  /* Type */
+  --font-display: 'Space Grotesk', system-ui, sans-serif;
+  --font-body: 'Inter', system-ui, sans-serif;
+
+  /* Shape */
+  --radius: 14px;
+  --notch-size: 22px;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-body);
+  -webkit-font-smoothing: antialiased;
+}
+
+h1, h2, h3, .display {
+  font-family: var(--font-display);
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: var(--ink);
+  margin: 0;
+}
+
+p {
+  line-height: 1.6;
+  color: var(--ink-soft);
+}
+
+/* ---- Buttons ---- */
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 0.95rem;
+  border: none;
+  border-radius: 999px;
+  padding: 0.7rem 1.5rem;
+  cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+}
+
+.btn:focus-visible {
+  outline: 2px solid var(--green-700);
+  outline-offset: 2px;
+}
+
+.btn-primary {
+  background: var(--green-700);
+  color: white;
+  box-shadow: 0 1px 2px rgba(14, 107, 79, 0.15);
+}
+
+.btn-primary:hover {
+  background: var(--green-600);
+  box-shadow: 0 4px 14px rgba(14, 107, 79, 0.25);
+  transform: translateY(-1px);
+}
+
+.btn-primary:active {
+  transform: translateY(0);
+}
+
+.btn-ghost {
+  background: transparent;
+  color: var(--ink);
+  padding: 0.7rem 1.1rem;
+}
+
+.btn-ghost:hover {
+  background: var(--bg-subtle);
+}
+
+/* ---- Ticket-notch card (the one bold device in this design) ---- */
+
+.ticket-card {
+  position: relative;
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  box-shadow: 0 1px 3px rgba(18, 33, 24, 0.04);
+}
+
+.ticket-card::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  right: -1px;
+  transform: translate(50%, -50%);
+  width: var(--notch-size);
+  height: var(--notch-size);
+  background: var(--bg-subtle);
+  border: 1px solid var(--line);
+  border-radius: 50%;
+}
+
+/* ---- Form fields ---- */
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  margin-bottom: 1.1rem;
+}
+
+.field label {
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--ink-soft);
+}
+
+.field input {
+  font-family: var(--font-body);
+  font-size: 0.95rem;
+  padding: 0.7rem 0.9rem;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--bg-subtle);
+  color: var(--ink);
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.field input:focus {
+  outline: none;
+  border-color: var(--green-500);
+  background: var(--bg);
+}
+
+.field-error {
+  color: var(--danger);
+  font-size: 0.82rem;
+}

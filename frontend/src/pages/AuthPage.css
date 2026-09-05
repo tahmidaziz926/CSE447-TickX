@@ -1,0 +1,131 @@
+.auth-page {
+  min-height: calc(100vh - 70px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 3rem 1.5rem;
+  background:
+    radial-gradient(600px circle at 15% 20%, var(--green-100) 0%, transparent 60%),
+    var(--bg);
+}
+
+.auth-card {
+  width: 100%;
+  max-width: 400px;
+  padding: 2.25rem 2rem;
+}
+
+.auth-card h1 {
+  font-size: 1.6rem;
+  margin-bottom: 0.4rem;
+}
+
+.auth-card__sub {
+  font-size: 0.9rem;
+  margin-bottom: 1.75rem;
+}
+
+.auth-card__submit {
+  width: 100%;
+  margin-top: 0.4rem;
+}
+
+.auth-card__footer {
+  text-align: center;
+  font-size: 0.87rem;
+  margin-top: 1.5rem;
+  margin-bottom: 0;
+}
+
+.auth-card__footer a {
+  color: var(--green-700);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.auth-card__footer a:hover {
+  text-decoration: underline;
+}
+
+/* ---- Register page extras ---- */
+
+.auth-card--wide {
+  max-width: 460px;
+}
+
+.field-row {
+  display: flex;
+  gap: 0.9rem;
+}
+
+.field-row .field {
+  flex: 1;
+}
+
+.role-toggle {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 1.5rem;
+  background: var(--bg-subtle);
+  padding: 4px;
+  border-radius: 999px;
+}
+
+.role-toggle__option {
+  flex: 1;
+  border: none;
+  background: transparent;
+  padding: 0.6rem 0.8rem;
+  border-radius: 999px;
+  font-family: var(--font-body);
+  font-size: 0.82rem;
+  font-weight: 500;
+  color: var(--ink-soft);
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.role-toggle__option--active {
+  background: var(--bg);
+  color: var(--green-700);
+  font-weight: 600;
+  box-shadow: 0 1px 3px rgba(18, 33, 24, 0.08);
+}
+
+.auth-card__notice {
+  font-size: 0.82rem;
+  background: var(--green-100);
+  color: var(--green-700);
+  padding: 0.7rem 0.9rem;
+  border-radius: 10px;
+  margin: 0 0 1.2rem 0;
+}
+
+/* ---- OTP page extras ---- */
+
+.otp-inputs {
+  display: flex;
+  gap: 0.6rem;
+  justify-content: center;
+  margin-bottom: 1.4rem;
+}
+
+.otp-inputs__box {
+  width: 48px;
+  height: 56px;
+  text-align: center;
+  font-family: var(--font-display);
+  font-size: 1.4rem;
+  font-weight: 600;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--bg-subtle);
+  color: var(--ink);
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.otp-inputs__box:focus {
+  outline: none;
+  border-color: var(--green-500);
+  background: var(--bg);
+}

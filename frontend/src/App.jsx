@@ -5,11 +5,11 @@ import ProtectedRoute from "./components/ProtectedRoute";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 import OtpVerify from "./pages/OtpVerify";
+import Events from "./pages/Events";
+import EventDetails from "./pages/EventDetails";
+import CreateEvent from "./pages/CreateEvent";
+import ManageEvents from "./pages/ManageEvents";
 
-/**
- * Layout wraps every page with the Navbar, wired to real auth state
- * from AuthContext instead of hardcoded props.
- */
 function Layout({ children }) {
   const { isAuthenticated, role, logout } = useAuth();
   return (
@@ -22,32 +22,14 @@ function Layout({ children }) {
 
 function Home() {
   return (
-    <main
-      style={{
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "center",
-        justifyContent: "center",
-        minHeight: "calc(100vh - 80px)",
-        padding: "3rem 1.5rem",
-        textAlign: "center",
-      }}
-    >
-      <h1
-        style={{
-          fontSize: "3.5rem",
-          color: "var(--green-700)",
-          marginBottom: "1rem",
-        }}
-      >
-        Welcome to TixCrypt
-      </h1>
+    <main style={{ padding: "3rem 1.5rem", textAlign: "center" }}>
+      <h1>Welcome to TixCrypt</h1>
       <p>Secure event ticketing, built from the ground up.</p>
     </main>
   );
 }
 
-// Placeholder — Tahmid/Pallab will replace this once their dashboards exist.
+// Placeholder — Pallab will replace this with a real buyer/admin dashboard.
 function Dashboard() {
   const { role } = useAuth();
   return (
@@ -62,14 +44,16 @@ export default function App() {
   return (
     <BrowserRouter>
       <Routes>
-        {/* Auth pages render their own Navbar (isAuthenticated=false),
-            since a logged-out user always sees the logged-out nav state
-            on these specific pages. */}
+        {/* Auth pages render their own Navbar (isAuthenticated=false) */}
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
         <Route path="/otp-verify" element={<OtpVerify />} />
 
-        {/* Everything else uses the shared Layout with live auth state */}
+        {/* Public event browsing — Events.jsx and EventDetails.jsx
+            render their own Navbar with real auth state internally */}
+        <Route path="/events" element={<Events />} />
+        <Route path="/events/:eventId" element={<EventDetails />} />
+
         <Route
           path="/"
           element={
@@ -86,6 +70,24 @@ export default function App() {
                 <Dashboard />
               </ProtectedRoute>
             </Layout>
+          }
+        />
+
+        {/* Seller-only event management */}
+        <Route
+          path="/dashboard/events"
+          element={
+            <ProtectedRoute allowedRoles={["SELLER"]}>
+              <ManageEvents />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/dashboard/events/create"
+          element={
+            <ProtectedRoute allowedRoles={["SELLER"]}>
+              <CreateEvent />
+            </ProtectedRoute>
           }
         />
       </Routes>

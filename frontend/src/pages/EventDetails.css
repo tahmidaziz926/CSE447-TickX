@@ -1,0 +1,43 @@
+.event-details {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 3rem;
+}
+
+@media (max-width: 800px) {
+  .event-details {
+    grid-template-columns: 1fr;
+  }
+}
+
+.event-details__info h1 {
+  font-size: 1.8rem;
+  margin: 0.6rem 0;
+}
+
+.event-details__meta {
+  font-size: 0.92rem;
+  margin: 0.2rem 0;
+}
+
+.event-details__description {
+  margin: 1.2rem 0;
+  line-height: 1.7;
+}
+
+.event-details__seats {
+  padding: 1.75rem;
+  align-self: start;
+}
+
+.event-details__seats h2 {
+  font-size: 1.15rem;
+  margin-bottom: 1.25rem;
+}
+
+.event-details__checkout {
+  display: block;
+  text-align: center;
+  margin-top: 1.5rem;
+  text-decoration: none;
+}

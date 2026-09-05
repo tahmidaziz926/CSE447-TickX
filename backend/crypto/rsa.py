@@ -174,6 +174,18 @@ def encrypt_bytes(message: bytes, public_key: dict) -> list:
     length_prefix = len(message).to_bytes(4, "big")
     data = length_prefix + message
 
+    # Pad data so its length is an exact multiple of max_chunk. This is
+    # essential: decrypt_bytes reconstructs every chunk as exactly
+    # max_chunk bytes (via to_bytes(max_chunk, "big")), which LEFT-pads
+    # with zeros. If the final chunk here were shorter than max_chunk,
+    # its real bytes would land at the END after decryption's fixed-
+    # length reconstruction instead of the position they were encrypted
+    # from — corrupting (or silently zeroing) the message. Padding here
+    # guarantees every encrypted chunk is already exactly max_chunk
+    # bytes, so decryption's reconstruction lines up exactly.
+    pad_len = (-len(data)) % max_chunk
+    data += b"\x00" * pad_len
+
     chunks = [data[i:i + max_chunk] for i in range(0, len(data), max_chunk)]
     return [pow(int.from_bytes(chunk, "big"), e, n) for chunk in chunks]
 

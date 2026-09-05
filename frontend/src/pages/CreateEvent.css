@@ -1,0 +1,6 @@
+.create-event__success {
+  text-align: center;
+  color: var(--green-700);
+  font-weight: 600;
+  padding: 2rem 0;
+}

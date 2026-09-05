@@ -1,0 +1,90 @@
+.events-page {
+  max-width: 1120px;
+  margin: 0 auto;
+  padding: 2.5rem 1.5rem 4rem;
+}
+
+.events-page__header {
+  margin-bottom: 2rem;
+}
+
+.events-page__header h1 {
+  font-size: 1.9rem;
+  margin-bottom: 0.4rem;
+}
+
+.events-page__search {
+  display: flex;
+  gap: 0.75rem;
+  margin-bottom: 2rem;
+  flex-wrap: wrap;
+}
+
+.events-page__search input,
+.events-page__search select {
+  font-family: var(--font-body);
+  font-size: 0.9rem;
+  padding: 0.65rem 0.9rem;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--bg-subtle);
+  color: var(--ink);
+}
+
+.events-page__search input {
+  flex: 1;
+  min-width: 200px;
+}
+
+.events-page__status {
+  text-align: center;
+  padding: 3rem 0;
+  color: var(--ink-soft);
+}
+
+.events-page__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 1.5rem;
+}
+
+.event-card {
+  display: block;
+  padding: 1.4rem;
+  text-decoration: none;
+  color: var(--ink);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.event-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(18, 33, 24, 0.08);
+}
+
+.event-card__category {
+  display: inline-block;
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--green-700);
+  background: var(--green-100);
+  padding: 0.2rem 0.6rem;
+  border-radius: 999px;
+  margin-bottom: 0.7rem;
+}
+
+.event-card h3 {
+  font-size: 1.1rem;
+  margin-bottom: 0.5rem;
+}
+
+.event-card__meta {
+  font-size: 0.85rem;
+  margin: 0.15rem 0;
+}
+
+.event-card__price {
+  font-family: var(--font-display);
+  font-weight: 600;
+  color: var(--green-700);
+  margin-top: 0.7rem;
+}

@@ -10,7 +10,7 @@ status, purpose, timestamps), never key_material.
 from bson import ObjectId
 from keys.models import (
     build_key_document, insert_key, find_active_key, find_key_by_version,
-    find_all_keys, mark_rotated, mark_revoked,
+    find_key_by_id, find_all_keys, mark_rotated, mark_revoked,
 )
 
 
@@ -68,8 +68,25 @@ def revoke_key(key_id) -> None:
     """
     Admin-triggered revocation of a compromised/invalid key. Revoked
     keys are rejected for both new operations and future verification.
+
+    If the key being revoked is the current ACTIVE key for its
+    purpose, we rotate first (minting a fresh active key) before
+    revoking the old one. Without this, get_or_create_active_key()
+    would find no ACTIVE key left for that purpose and silently mint
+    a brand-new key at key_version=1 again — colliding with the
+    version number that was just revoked, and breaking
+    find_key_by_version() lookups (ambiguous which doc is "version 1").
+    Rotating first guarantees version numbers always increase and a
+    purpose is never left without a usable active key.
     """
     oid = key_id if isinstance(key_id, ObjectId) else ObjectId(key_id)
+    key_doc = find_key_by_id(oid)
+    if key_doc is None:
+        raise KeyLifecycleError(f"no key found with id={key_id}")
+
+    if key_doc["status"] == "ACTIVE":
+        rotate_key(key_doc["purpose"])
+
     mark_revoked(oid)
 
 

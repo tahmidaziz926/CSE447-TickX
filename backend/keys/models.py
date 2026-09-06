@@ -40,9 +40,12 @@ def insert_key(key_doc: dict):
 def find_active_key(purpose: str):
     return keys_collection().find_one({"purpose": purpose, "status": "ACTIVE"})
 
-
 def find_key_by_version(purpose: str, version: int):
     return keys_collection().find_one({"purpose": purpose, "key_version": version})
+
+
+def find_key_by_id(key_id):
+    return keys_collection().find_one({"_id": key_id})
 
 
 def find_all_keys(purpose: str = None):

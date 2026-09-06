@@ -103,3 +103,19 @@ def email_exists(email: str) -> bool:
         {"email": email},
         limit=1
     ) > 0
+
+def get_pending_sellers():
+    """Returns all users with role=SELLER and status=PENDING."""
+    return list(users_collection().find(
+        {"role": "SELLER", "status": "PENDING"}
+    ))
+
+
+def update_seller_status(user_id, new_status):
+    """new_status must be 'APPROVED' or 'REJECTED'."""
+    from bson import ObjectId
+    result = users_collection().update_one(
+        {"_id": ObjectId(user_id), "role": "SELLER"},
+        {"$set": {"status": new_status}},
+    )
+    return result.modified_count == 1

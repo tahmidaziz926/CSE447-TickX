@@ -13,8 +13,63 @@ from admin.services import (
 from keys.service import list_keys_for_admin, rotate_key, revoke_key, KeyLifecycleError
 from tickets.models import transactions_collection
 
+from auth.models import get_pending_sellers, update_seller_status
+from security_logs import log_security_event
+
+
 admin_bp = Blueprint("admin", __name__)
 
+@admin_bp.route("/sellers/pending", methods=["GET"])
+@login_required
+def list_pending_sellers():
+    if request.current_user["role"] != "ADMIN":
+        return jsonify({"error": "forbidden"}), 403
+
+    sellers = get_pending_sellers()
+    return jsonify([
+        {
+            "user_id": str(s["_id"]),
+            "email": s["email"],
+            "personal_info": s.get("personal_info", {}),
+        }
+        for s in sellers
+    ]), 200
+
+
+@admin_bp.route("/sellers/<user_id>/approve", methods=["POST"])
+@login_required
+def approve_seller(user_id):
+    if request.current_user["role"] != "ADMIN":
+        return jsonify({"error": "forbidden"}), 403
+
+    success = update_seller_status(user_id, "APPROVED")
+    if not success:
+        return jsonify({"error": "seller not found or already processed"}), 404
+
+    log_security_event(
+        "SELLER_APPROVED",
+        f"Seller {user_id} approved by admin",
+        {"user_id": user_id, "admin_id": str(request.current_user["user_id"])},
+    )
+    return jsonify({"user_id": user_id, "status": "APPROVED"}), 200
+
+
+@admin_bp.route("/sellers/<user_id>/reject", methods=["POST"])
+@login_required
+def reject_seller(user_id):
+    if request.current_user["role"] != "ADMIN":
+        return jsonify({"error": "forbidden"}), 403
+
+    success = update_seller_status(user_id, "REJECTED")
+    if not success:
+        return jsonify({"error": "seller not found or already processed"}), 404
+
+    log_security_event(
+        "SELLER_REJECTED",
+        f"Seller {user_id} rejected by admin",
+        {"user_id": user_id, "admin_id": str(request.current_user["user_id"])},
+    )
+    return jsonify({"user_id": user_id, "status": "REJECTED"}), 200
 
 @admin_bp.route("/users", methods=["GET"])
 @login_required

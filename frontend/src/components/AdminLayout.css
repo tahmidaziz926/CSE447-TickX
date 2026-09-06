@@ -1,0 +1,144 @@
+.admin-layout {
+  display: grid;
+  grid-template-columns: 220px 1fr;
+  min-height: calc(100vh - 70px);
+}
+
+.admin-layout__sidebar {
+  border-right: 1px solid var(--line);
+  padding: 1.5rem 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.admin-layout__link {
+  padding: 0.6rem 0.8rem;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: var(--ink-soft);
+  text-decoration: none;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.admin-layout__link:hover {
+  background: var(--bg-subtle);
+  color: var(--ink);
+}
+
+.admin-layout__link--active {
+  background: var(--green-100);
+  color: var(--green-700);
+  font-weight: 600;
+}
+
+.admin-layout__content {
+  padding: 2rem 2.5rem;
+  max-width: 1000px;
+}
+
+@media (max-width: 760px) {
+  .admin-layout {
+    grid-template-columns: 1fr;
+  }
+  .admin-layout__sidebar {
+    flex-direction: row;
+    overflow-x: auto;
+    border-right: none;
+    border-bottom: 1px solid var(--line);
+  }
+}
+
+/* Shared table styling used across admin pages */
+.admin-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.88rem;
+}
+
+.admin-table th {
+  text-align: left;
+  padding: 0.7rem 0.9rem;
+  border-bottom: 1px solid var(--line);
+  color: var(--ink-soft);
+  font-weight: 600;
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.admin-table td {
+  padding: 0.8rem 0.9rem;
+  border-bottom: 1px solid var(--line);
+}
+
+.admin-table__badge {
+  font-size: 0.72rem;
+  font-weight: 600;
+  padding: 0.2rem 0.6rem;
+  border-radius: 999px;
+}
+
+.admin-table__badge--active,
+.admin-table__badge--approved,
+.admin-table__badge--successful {
+  background: var(--green-100);
+  color: var(--green-700);
+}
+
+.admin-table__badge--pending {
+  background: #FDF2E9;
+  color: #B9770E;
+}
+
+.admin-table__badge--suspended,
+.admin-table__badge--rejected,
+.admin-table__badge--failed,
+.admin-table__badge--revoked {
+  background: #FDEDEC;
+  color: #C0392B;
+}
+
+.admin-table__badge--rotated,
+.admin-table__badge--deactivated,
+.admin-table__badge--cancelled {
+  background: #F3F3F3;
+  color: #8A8A8A;
+}
+
+.admin-page__header {
+  margin-bottom: 1.75rem;
+}
+
+.admin-page__header h1 {
+  font-size: 1.6rem;
+  margin-bottom: 0.3rem;
+}
+
+.admin-table__actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.admin-table__actions .btn {
+  padding: 0.4rem 0.9rem;
+  font-size: 0.82rem;
+}
+
+.admin-rotate-form {
+  display: flex;
+  gap: 0.6rem;
+  margin-bottom: 1.5rem;
+}
+
+.admin-rotate-form input {
+  font-family: var(--font-body);
+  font-size: 0.88rem;
+  padding: 0.6rem 0.9rem;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--bg-subtle);
+  flex: 1;
+  max-width: 280px;
+}

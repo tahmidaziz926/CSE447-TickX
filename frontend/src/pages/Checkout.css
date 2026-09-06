@@ -1,0 +1,35 @@
+.checkout-card {
+  max-width: 440px;
+}
+
+.checkout-summary {
+  background: var(--bg-subtle);
+  border-radius: 12px;
+  padding: 1.2rem 1.4rem;
+  margin: 1.5rem 0;
+}
+
+.checkout-summary__row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.9rem;
+  padding: 0.4rem 0;
+}
+
+.checkout-summary__row--total {
+  border-top: 1px solid var(--line);
+  margin-top: 0.4rem;
+  padding-top: 0.7rem;
+  font-family: var(--font-display);
+  font-size: 1.05rem;
+  color: var(--green-700);
+}
+
+.checkout-success {
+  text-align: center;
+}
+
+.checkout-success h1 {
+  font-size: 1.6rem;
+  margin-bottom: 0.6rem;
+}

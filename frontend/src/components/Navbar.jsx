@@ -1,18 +1,17 @@
 import { useState, useEffect } from "react";
 import "./Navbar.css";
+
 /**
  * Navbar.jsx — TixCrypt navigation bar.
  *
- * Interactive details:
- *  - Turns into a subtle "elevated" glass state after scrolling, so it
- *    reads as part of the page at the top and as a fixed UI chrome once
- *    the user scrolls past the hero.
- *  - Mobile: collapses into a slide-down menu behind a toggle button.
- *  - The primary CTA uses the ticket-notch shape as a small badge, tying
- *    the nav back to the ticketing subject matter.
+ * Links shown depend on auth state AND role:
+ *   - Logged out: Events, How it works
+ *   - BUYER:      Events, My Tickets, My Transactions, Profile
+ *   - SELLER:     Events, My Events, Create Event, Profile
+ *   - ADMIN:      Events, Admin Dashboard, Profile
  *
- * Usage:
- *   <Navbar isAuthenticated={false} onLogout={() => {}} />
+ * This is what was missing before — the role-specific pages all
+ * existed and worked, but nothing in the nav ever linked to them.
  */
 export default function Navbar({ isAuthenticated = false, userRole = null, onLogout }) {
   const [scrolled, setScrolled] = useState(false);
@@ -24,10 +23,41 @@ export default function Navbar({ isAuthenticated = false, userRole = null, onLog
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
-  const navLinks = [
-    { label: "Events", href: "/events" },
-    { label: "How it works", href: "/how-it-works" },
-  ];
+  function getNavLinks() {
+    if (!isAuthenticated) {
+      return [
+        { label: "Events", href: "/events" },
+        { label: "How it works", href: "/how-it-works" },
+      ];
+    }
+
+    if (userRole === "SELLER") {
+      return [
+        { label: "Events", href: "/events" },
+        { label: "My Events", href: "/dashboard/events" },
+        { label: "Create Event", href: "/dashboard/events/create" },
+        { label: "Profile", href: "/profile" },
+      ];
+    }
+
+    if (userRole === "ADMIN") {
+      return [
+        { label: "Events", href: "/events" },
+        { label: "Admin Dashboard", href: "/admin" },
+        { label: "Profile", href: "/profile" },
+      ];
+    }
+
+    // BUYER (default authenticated role)
+    return [
+      { label: "Events", href: "/events" },
+      { label: "My Tickets", href: "/my-tickets" },
+      { label: "My Transactions", href: "/my-transactions" },
+      { label: "Profile", href: "/profile" },
+    ];
+  }
+
+  const navLinks = getNavLinks();
 
   return (
     <header className={`nav ${scrolled ? "nav--scrolled" : ""}`}>

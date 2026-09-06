@@ -15,7 +15,7 @@ from extensions import get_db
 # just 1 minute of inactivity (sliding expiration — any authenticated
 # request resets the clock). Change this value if you need a longer
 # lifetime later (e.g. for normal day-to-day development).
-SESSION_VALID_MINUTES = int(os.environ.get("SESSION_VALID_MINUTES", 1))
+SESSION_VALID_MINUTES = int(os.environ.get("SESSION_VALID_MINUTES", 10))
 
 
 def sessions_collection():

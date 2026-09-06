@@ -5,136 +5,196 @@ No use of any cryptographic library (no `cryptography`, `ecdsa`,
 `pycryptodome`, etc.) — only Python's built-in integer arithmetic and
 `secrets` for randomness.
 
-Curve: secp256k1 — a standard, well-documented curve (the same one
-Bitcoin uses). Using a standard curve's fixed public parameters (a, b,
-p, G, n) is normal practice; what's implemented "from scratch" here is
-the actual POINT ARITHMETIC (addition, doubling, scalar multiplication)
-and the ECDSA signing/verification built on top of it — not the curve
-parameters themselves, which are public constants anyone can look up
-(the same way RSA doesn't require you to invent modular exponentiation
-notation, just implement it).
-
-Higher-level operation implemented: ECDSA (Elliptic Curve Digital
-Signature Algorithm) — used for signing data to prove authenticity,
-e.g. a seller's event listing, or a critical record's integrity,
-separate from Person 1's RSA which handles encryption of personal
-data. This gives RSA and ECC clearly distinct roles, as the
-requirements ask for.
-
-CONFIRM WITH YOUR INSTRUCTOR: exactly which application operation ECC
-should be used for (a digital signature scheme, as implemented here,
-vs. a key-agreement scheme like ECDH) — the requirements say "such as
-digital signatures or key-related operations," leaving the exact
-choice to your team.
+Curve: secp256k1.
 """
 
 import secrets
-import hashlib  # only used to hash the *message* being signed before
-                 # the ECDSA math runs on it — this is standard: ECDSA
-                 # always signs a hash of the message, never the raw
-                 # message directly. If your team wants this to also
-                 # avoid hashlib entirely, swap this for
-                 # crypto.sha256.sha256 from Person 1's module.
+import hashlib
+
 
 # ---------------------------------------------------------------------------
-# secp256k1 curve parameters (public, standard — not something to
-# "compute" any more than RSA's use of prime numbers is computed from
-# nothing) — curve equation: y^2 = x^3 + a*x + b (mod p)
+# secp256k1 curve parameters
 # ---------------------------------------------------------------------------
 
 _P = 0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEFFFFFC2F
 _A = 0
 _B = 7
-_GX = 0x79BE667EF9DCBBAC55A06295CE870B07029BFCDB2DCE28D959F2815B16F81798
-_GY = 0x483ADA7726A3C4655DA4FBFC0E1108A8FD17B448A68554199C47D08FFB10D4B8
-_N = 0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEBAAEDCE6AF48A03BBFD25E8CD0364141
 
-# The point at infinity (the curve's "zero" / identity element),
-# represented as None throughout this module.
+_GX = (
+    0x79BE667EF9DCBBAC55A06295CE870B07029BFCDB2DCE28D959F2815B16F81798
+)
+
+_GY = (
+    0x483ADA7726A3C4655DA4FBFC0E1108A8FD17B448A68554199C47D08FFB10D4B8
+)
+
+_N = (
+    0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEBAAEDCE6AF48A03BBFD25E8CD0364141
+)
+
+
+# Point at infinity.
 INFINITY = None
 
 
+# Generator point.
+G = (_GX, _GY)
+
+
 # ---------------------------------------------------------------------------
-# Point arithmetic — implemented from scratch
+# Private key conversion helper
+# ---------------------------------------------------------------------------
+
+def _normalize_private_key(private_key) -> int:
+    """
+    Convert a private key retrieved from storage into a Python integer.
+
+    MongoDB-safe storage may store the ECC private key as:
+        - an integer
+        - a decimal string
+        - a hexadecimal string
+
+    This function converts supported formats into a normal Python int.
+    """
+
+    if isinstance(private_key, int):
+        key = private_key
+
+    elif isinstance(private_key, str):
+        private_key = private_key.strip()
+
+        if private_key.startswith(("0x", "0X")):
+            key = int(private_key, 16)
+        else:
+            key = int(private_key, 10)
+
+    else:
+        raise TypeError(
+            "ECC private key must be an integer or a string"
+        )
+
+    if not (1 <= key < _N):
+        raise ValueError(
+            "ECC private key must be in the range [1, N-1]"
+        )
+
+    return key
+
+
+# ---------------------------------------------------------------------------
+# Point arithmetic
 # ---------------------------------------------------------------------------
 
 def _mod_inverse(x: int, p: int) -> int:
-    """Modular inverse via the extended Euclidean algorithm (same
-    technique as Person 1's RSA module, applied here mod p instead of
-    mod phi(n))."""
+    """
+    Modular inverse using the extended Euclidean algorithm.
+    """
+
     if x == 0:
         raise ZeroDivisionError("inverse of 0 does not exist")
+
     lm, hm = 1, 0
     low, high = x % p, p
+
     while low > 1:
         ratio = high // low
-        nm, new = hm - lm * ratio, high - low * ratio
+        nm = hm - lm * ratio
+        new = high - low * ratio
+
         lm, low, hm, high = nm, new, lm, low
+
     return lm % p
 
 
 def is_on_curve(point) -> bool:
-    """Validate that a point actually satisfies y^2 = x^3 + a*x + b (mod p)."""
+    """
+    Check whether a point satisfies the secp256k1 curve equation.
+    """
+
     if point is INFINITY:
         return True
+
     x, y = point
-    return (y * y - (x * x * x + _A * x + _B)) % _P == 0
+
+    return (
+        y * y - (x * x * x + _A * x + _B)
+    ) % _P == 0
 
 
 def point_add(p1, p2):
     """
-    Elliptic curve point addition, with the required special cases:
-      - adding the point at infinity to anything returns the other point
-      - adding a point to its own negation returns the point at infinity
-      - adding a point to itself uses the doubling formula instead
+    Elliptic curve point addition.
     """
+
     if p1 is INFINITY:
         return p2
+
     if p2 is INFINITY:
         return p1
 
     x1, y1 = p1
     x2, y2 = p2
 
+    # P + (-P) = infinity.
     if x1 == x2 and (y1 + y2) % _P == 0:
-        # P + (-P) = point at infinity
         return INFINITY
 
+    # P + P.
     if p1 == p2:
         return point_double(p1)
 
-    # standard point addition formula
-    slope = ((y2 - y1) * _mod_inverse(x2 - x1, _P)) % _P
-    x3 = (slope * slope - x1 - x2) % _P
-    y3 = (slope * (x1 - x3) - y1) % _P
+    slope = (
+        (y2 - y1)
+        * _mod_inverse(x2 - x1, _P)
+    ) % _P
+
+    x3 = (
+        slope * slope - x1 - x2
+    ) % _P
+
+    y3 = (
+        slope * (x1 - x3) - y1
+    ) % _P
+
     return (x3, y3)
 
 
 def point_double(point):
     """
-    Elliptic curve point doubling (P + P), with the special case that
-    doubling a point whose y-coordinate is 0 returns the point at
-    infinity (the tangent line there is vertical).
+    Elliptic curve point doubling.
     """
+
     if point is INFINITY:
         return INFINITY
 
     x, y = point
+
     if y == 0:
         return INFINITY
 
-    slope = ((3 * x * x + _A) * _mod_inverse(2 * y, _P)) % _P
-    x3 = (slope * slope - 2 * x) % _P
-    y3 = (slope * (x - x3) - y) % _P
+    slope = (
+        (3 * x * x + _A)
+        * _mod_inverse(2 * y, _P)
+    ) % _P
+
+    x3 = (
+        slope * slope - 2 * x
+    ) % _P
+
+    y3 = (
+        slope * (x - x3) - y
+    ) % _P
+
     return (x3, y3)
 
 
 def scalar_multiply(k: int, point):
     """
-    Scalar multiplication k*P via the double-and-add algorithm —
-    the elliptic-curve equivalent of RSA's square-and-multiply for
-    modular exponentiation.
+    Scalar multiplication k * P using double-and-add.
     """
+
+    k = int(k)
+
     if k % _N == 0 or point is INFINITY:
         return INFINITY
 
@@ -143,14 +203,16 @@ def scalar_multiply(k: int, point):
 
     while k:
         if k & 1:
-            result = point_add(result, addend)
+            result = point_add(
+                result,
+                addend,
+            )
+
         addend = point_double(addend)
+
         k >>= 1
 
     return result
-
-
-G = (_GX, _GY)  # the curve's base/generator point
 
 
 # ---------------------------------------------------------------------------
@@ -160,91 +222,304 @@ G = (_GX, _GY)  # the curve's base/generator point
 def generate_keypair():
     """
     Generate an ECC key pair.
-    Private key: a random integer in [1, n-1].
-    Public key: privateKey * G (a point on the curve).
 
-    Returns {"private": <int>, "public": (x, y)}.
+    Returns:
+
+        {
+            "private": private_key,
+            "public": (x, y)
+        }
     """
-    private_key = secrets.randbelow(_N - 1) + 1
-    public_key = scalar_multiply(private_key, G)
-    return {"private": private_key, "public": public_key}
+
+    private_key = (
+        secrets.randbelow(_N - 1) + 1
+    )
+
+    public_key = scalar_multiply(
+        private_key,
+        G,
+    )
+
+    return {
+        "private": private_key,
+        "public": public_key,
+    }
 
 
 # ---------------------------------------------------------------------------
-# ECDSA — the higher-level application operation built on the above
+# ECDSA message hashing
 # ---------------------------------------------------------------------------
 
 def _hash_message(message: bytes) -> int:
-    """Hash the message and reduce it to an integer mod n, as ECDSA requires."""
-    digest = hashlib.sha256(message).digest()
-    return int.from_bytes(digest, "big") % _N
+    """
+    Hash a message and convert it to an integer.
+    """
+
+    if not isinstance(message, bytes):
+        raise TypeError(
+            "message must be bytes"
+        )
+
+    digest = hashlib.sha256(
+        message
+    ).digest()
+
+    return int.from_bytes(
+        digest,
+        "big",
+    ) % _N
 
 
-def sign(message: bytes, private_key: int) -> tuple:
+# ---------------------------------------------------------------------------
+# ECDSA signing
+# ---------------------------------------------------------------------------
+
+def sign(message: bytes, private_key) -> tuple:
     """
-    ECDSA signing. Returns (r, s) — the signature.
-    Uses a freshly random nonce k for every signature (reusing k, or
-    using a predictable k, is what breaks ECDSA in practice — this is
-    a well-known real-world pitfall worth mentioning in your report).
+    Sign a message using ECDSA.
+
+    Returns:
+
+        (r, s)
     """
-    z = _hash_message(message)
+
+    # IMPORTANT:
+    # Convert MongoDB-stored string private keys back into integers.
+    private_key = _normalize_private_key(
+        private_key
+    )
+
+    z = _hash_message(
+        message
+    )
 
     while True:
-        k = secrets.randbelow(_N - 1) + 1
-        point = scalar_multiply(k, G)
+
+        # Generate a secure random nonce.
+        k = secrets.randbelow(
+            _N - 1
+        ) + 1
+
+        point = scalar_multiply(
+            k,
+            G,
+        )
+
         if point is INFINITY:
             continue
+
         r = point[0] % _N
+
         if r == 0:
             continue
 
-        k_inv = _mod_inverse(k, _N)
-        s = (k_inv * (z + r * private_key)) % _N
+        k_inv = _mod_inverse(
+            k,
+            _N,
+        )
+
+        s = (
+            k_inv
+            * (
+                z + r * private_key
+            )
+        ) % _N
+
         if s == 0:
             continue
 
-        return (r, s)
+        return (
+            r,
+            s,
+        )
 
 
-def verify(message: bytes, signature: tuple, public_key) -> bool:
+# ---------------------------------------------------------------------------
+# ECDSA verification
+# ---------------------------------------------------------------------------
+
+def verify(
+    message: bytes,
+    signature: tuple,
+    public_key,
+) -> bool:
     """
-    ECDSA verification. Returns True if `signature` is a valid
-    signature over `message` under `public_key`.
+    Verify an ECDSA signature.
     """
-    r, s = signature
-    if not (1 <= r < _N and 1 <= s < _N):
+
+    if not isinstance(signature, tuple):
         return False
 
-    z = _hash_message(message)
-    s_inv = _mod_inverse(s, _N)
+    if len(signature) != 2:
+        return False
 
-    u1 = (z * s_inv) % _N
-    u2 = (r * s_inv) % _N
+    r, s = signature
 
-    point = point_add(scalar_multiply(u1, G), scalar_multiply(u2, public_key))
+    # Convert stored values to normal Python integers.
+    r = int(r)
+    s = int(s)
+
+    if not (
+        1 <= r < _N
+        and 1 <= s < _N
+    ):
+        return False
+
+    if not isinstance(
+        public_key,
+        tuple,
+    ):
+        return False
+
+    if len(public_key) != 2:
+        return False
+
+    public_key = (
+        int(public_key[0]),
+        int(public_key[1]),
+    )
+
+    if not is_on_curve(public_key):
+        return False
+
+    z = _hash_message(
+        message
+    )
+
+    s_inv = _mod_inverse(
+        s,
+        _N,
+    )
+
+    u1 = (
+        z * s_inv
+    ) % _N
+
+    u2 = (
+        r * s_inv
+    ) % _N
+
+    point = point_add(
+        scalar_multiply(
+            u1,
+            G,
+        ),
+        scalar_multiply(
+            u2,
+            public_key,
+        ),
+    )
+
     if point is INFINITY:
         return False
 
-    return (point[0] % _N) == r
+    return (
+        point[0] % _N
+    ) == r
 
 
 # ---------------------------------------------------------------------------
-# Serialization helpers (for storing keys/signatures in MongoDB)
+# Public key serialization
 # ---------------------------------------------------------------------------
 
 def public_key_to_dict(public_key) -> dict:
+    """
+    Convert an ECC public key point into a MongoDB-safe dictionary.
+    """
+
     x, y = public_key
-    return {"x": hex(x), "y": hex(y)}
+
+    return {
+        "x": hex(int(x)),
+        "y": hex(int(y)),
+    }
 
 
 def public_key_from_dict(data: dict):
-    return (int(data["x"], 16), int(data["y"], 16))
+    """
+    Convert a stored public key dictionary back into an ECC point.
+    """
 
+    if not isinstance(data, dict):
+        raise TypeError(
+            "ECC public key data must be a dictionary"
+        )
+
+    return (
+        int(data["x"], 16),
+        int(data["y"], 16),
+    )
+
+
+# ---------------------------------------------------------------------------
+# Private key serialization
+# ---------------------------------------------------------------------------
+
+def private_key_to_dict(private_key) -> dict:
+    """
+    Convert an ECC private key into a MongoDB-safe dictionary.
+
+    The value is stored as a string because it is a large integer.
+    """
+
+    private_key = _normalize_private_key(
+        private_key
+    )
+
+    return {
+        "d": str(private_key),
+    }
+
+
+def private_key_from_dict(data: dict) -> int:
+    """
+    Convert a MongoDB-stored ECC private key dictionary
+    back into a Python integer.
+    """
+
+    if not isinstance(data, dict):
+        raise TypeError(
+            "ECC private key data must be a dictionary"
+        )
+
+    if "d" not in data:
+        raise ValueError(
+            "ECC private key dictionary must contain 'd'"
+        )
+
+    return _normalize_private_key(
+        data["d"]
+    )
+
+
+# ---------------------------------------------------------------------------
+# Signature serialization
+# ---------------------------------------------------------------------------
 
 def signature_to_dict(signature: tuple) -> dict:
+    """
+    Convert an ECDSA signature into a MongoDB-safe dictionary.
+    """
+
     r, s = signature
-    return {"r": hex(r), "s": hex(s)}
+
+    return {
+        "r": hex(int(r)),
+        "s": hex(int(s)),
+    }
 
 
 def signature_from_dict(data: dict) -> tuple:
-    return (int(data["r"], 16), int(data["s"], 16))
+    """
+    Convert a stored signature dictionary back into (r, s).
+    """
+
+    if not isinstance(data, dict):
+        raise TypeError(
+            "ECC signature data must be a dictionary"
+        )
+
+    return (
+        int(data["r"], 16),
+        int(data["s"], 16),
+    )

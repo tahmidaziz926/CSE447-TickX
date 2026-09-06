@@ -5,9 +5,11 @@ import ProtectedRoute from "./components/ProtectedRoute";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 import OtpVerify from "./pages/OtpVerify";
+import Profile from "./pages/Profile";
 import Events from "./pages/Events";
 import EventDetails from "./pages/EventDetails";
 import CreateEvent from "./pages/CreateEvent";
+import EditEvent from "./pages/EditEvent";
 import ManageEvents from "./pages/ManageEvents";
 import Checkout from "./pages/Checkout";
 import MyTickets from "./pages/MyTickets";
@@ -39,16 +41,6 @@ function Home() {
   );
 }
 
-function Dashboard() {
-  const { role } = useAuth();
-  return (
-    <main style={{ padding: "3rem 1.5rem" }}>
-      <h1>Dashboard</h1>
-      <p>Logged in as: {role}</p>
-    </main>
-  );
-}
-
 export default function App() {
   return (
     <BrowserRouter>
@@ -63,9 +55,11 @@ export default function App() {
         <Route path="/events/:eventId" element={<EventDetails />} />
 
         <Route path="/" element={<Layout><Home /></Layout>} />
+
+        {/* Profile — any authenticated user (buyer or seller) */}
         <Route
-          path="/dashboard"
-          element={<Layout><ProtectedRoute><Dashboard /></ProtectedRoute></Layout>}
+          path="/profile"
+          element={<ProtectedRoute><Profile /></ProtectedRoute>}
         />
 
         {/* Seller-only event management */}
@@ -77,8 +71,12 @@ export default function App() {
           path="/dashboard/events/create"
           element={<ProtectedRoute allowedRoles={["SELLER"]}><CreateEvent /></ProtectedRoute>}
         />
+        <Route
+          path="/dashboard/events/:eventId/edit"
+          element={<ProtectedRoute allowedRoles={["SELLER"]}><EditEvent /></ProtectedRoute>}
+        />
 
-        {/* Buyer purchase flow (Pallab's part) */}
+        {/* Buyer purchase flow */}
         <Route
           path="/checkout"
           element={<ProtectedRoute allowedRoles={["BUYER"]}><Checkout /></ProtectedRoute>}
@@ -92,7 +90,7 @@ export default function App() {
           element={<ProtectedRoute allowedRoles={["BUYER"]}><MyTransactions /></ProtectedRoute>}
         />
 
-        {/* Admin dashboard (Pallab's part) — all require ADMIN role */}
+        {/* Admin dashboard — all require ADMIN role */}
         <Route path="/admin" element={<ProtectedRoute allowedRoles={["ADMIN"]}><AdminDashboard /></ProtectedRoute>} />
         <Route path="/admin/users" element={<ProtectedRoute allowedRoles={["ADMIN"]}><AdminUsers /></ProtectedRoute>} />
         <Route path="/admin/sellers" element={<ProtectedRoute allowedRoles={["ADMIN"]}><AdminSellers /></ProtectedRoute>} />

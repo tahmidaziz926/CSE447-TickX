@@ -9,6 +9,7 @@ Flask-specific code.
 """
 
 from crypto import rsa, ecc
+from security_logs import log_security_event
 from crypto.hashing import hash_password, verify_password
 from auth.models import build_user_document, find_user_by_email, insert_user, email_exists
 from auth.otp import generate_otp, verify_otp
@@ -65,16 +66,23 @@ def register_user(email: str, password: str, role: str, personal_info: dict) -> 
     hashed = hash_password(password)
 
     # 4. Build and insert the user document
+    #    IMPORTANT: RSA keys and the ECC private key are integers far
+    #    bigger than MongoDB's 8-byte int limit — they MUST be
+    #    converted to hex strings before storage (rsa.key_to_dict /
+    #    hex()), or insert_user() will raise an OverflowError. Convert
+    #    back with rsa.key_from_dict() / int(x, 16) before using them
+    #    for any actual crypto operation later (e.g. events/routes.py
+    #    reading ecc_private_key to sign an event).
     user_doc = build_user_document(
         email=email,
         role=role,
         password_hash=hashed["hash"],
         password_salt=hashed["salt"],
         encrypted_fields=encrypted_fields,
-        rsa_public_key=keypair["public"],
-        rsa_private_key=keypair["private"],  # TODO: hand off to Key Management Module
+        rsa_public_key=rsa.key_to_dict(keypair["public"]),
+        rsa_private_key=rsa.key_to_dict(keypair["private"]),  # TODO: hand off to Key Management Module
         ecc_public_key=ecc.public_key_to_dict(ecc_keypair["public"]),
-        ecc_private_key=ecc_keypair["private"],  # TODO: hand off to Key Management Module
+        ecc_private_key=hex(ecc_keypair["private"]),  # TODO: hand off to Key Management Module
     )
     user_id = insert_user(user_doc)
 
@@ -98,12 +106,24 @@ def login_step1_password(email: str, password: str) -> dict:
     """
     user = find_user_by_email(email)
     if user is None:
+        # Same generic error as a wrong password — don't reveal
+        # whether the email exists at all (a common enumeration
+        # protection). Still logged, but without a user_id since none
+        # was matched.
+        log_security_event("LOGIN_FAILED", f"Login attempt for unknown email", {"email": email})
         raise AuthError("invalid email or password")
 
     if not verify_password(password, user["password_hash"], user["password_salt"]):
+        log_security_event(
+            "LOGIN_FAILED", "Incorrect password", {"user_id": str(user["_id"]), "email": email}
+        )
         raise AuthError("invalid email or password")
 
     if user.get("account_status") != "ACTIVE":
+        log_security_event(
+            "LOGIN_BLOCKED", "Login attempt on suspended/inactive account",
+            {"user_id": str(user["_id"]), "email": email},
+        )
         raise AuthError("account is suspended or inactive")
 
     generate_otp(user["_id"])  # prints to console for this project
@@ -130,6 +150,7 @@ def login_step2_otp(user_id, submitted_code: str) -> dict:
     from auth.models import users_collection
 
     if not verify_otp(user_id, submitted_code):
+        log_security_event("OTP_FAILED", "Invalid or expired OTP submitted", {"user_id": str(user_id)})
         raise AuthError("invalid or expired OTP")
 
     user = users_collection().find_one({"_id": ObjectId(user_id) if isinstance(user_id, str) else user_id})
